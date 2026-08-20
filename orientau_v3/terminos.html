@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Términos y Condiciones · OrientaU</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .legal-wrap {
+    position: relative; z-index: 1;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 24px 100px;
+  }
+  .legal-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  }
+  .legal-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.3rem; font-weight: 700;
+  }
+  .legal-logo img { width: 32px; height: 32px; }
+  .legal-logo span { color: var(--blue-400); }
+  .legal-back {
+    color: var(--blue-300); text-decoration: none;
+    font-size: 0.9rem; padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
+    transition: background .2s;
+  }
+  .legal-back:hover { background: rgba(255,255,255,0.06); }
+
+  .legal-hero {
+    text-align: center; margin-bottom: 40px;
+  }
+  .legal-hero h1 {
+    font-family: Georgia, serif; font-size: 2.2rem; margin: 0 0 10px;
+  }
+  .legal-hero p {
+    color: rgba(255,255,255,0.55); font-size: 0.95rem; margin: 0;
+  }
+
+  .legal-tabs {
+    display: flex; gap: 10px; justify-content: center; margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+  .legal-tab {
+    padding: 10px 20px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.03);
+    font-size: 0.9rem; font-weight: 600;
+    transition: all .2s;
+  }
+  .legal-tab.active {
+    background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+    border-color: transparent;
+  }
+
+  .legal-doc { display: none; }
+  .legal-doc.active { display: block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+  .legal-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    backdrop-filter: blur(10px);
+  }
+  .legal-updated {
+    font-size: 0.8rem; color: rgba(255,255,255,0.4);
+    margin-bottom: 24px;
+  }
+  .legal-card h2 {
+    font-size: 1.15rem; color: var(--blue-300);
+    margin: 32px 0 12px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .legal-card h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .legal-card p, .legal-card li {
+    font-size: 0.93rem; line-height: 1.7;
+    color: rgba(255,255,255,0.8);
+  }
+  .legal-card ul, .legal-card ol { padding-left: 22px; margin: 10px 0; }
+  .legal-card li { margin-bottom: 6px; }
+  .legal-card strong { color: #fff; }
+  .legal-note {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 0.87rem;
+    color: #fbbf24;
+    margin: 20px 0;
+  }
+  .legal-note strong { color: #fbbf24; }
+  .legal-contact {
+    margin-top: 30px; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.88rem; color: rgba(255,255,255,0.6);
+  }
+  .legal-contact a { color: var(--blue-300); }
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+
+<div class="legal-wrap">
+  <div class="legal-top">
+    <div class="legal-logo">
+      <img src="assets/logo_transparent.png" alt="OrientaU">
+      Orienta<span>U</span>
+    </div>
+    <a href="index.html" class="legal-back">← Volver a OrientaU</a>
+  </div>
+
+  <div class="legal-hero">
+    <h1>Términos y Política de Datos</h1>
+    <p>Proyecto educativo de orientación vocacional — I.E. Misael Pastrana Borrero, Cúcuta</p>
+  </div>
+
+  <div class="legal-tabs">
+    <div class="legal-tab active" onclick="showDoc('terminos', this)">📜 Términos y Condiciones</div>
+    <div class="legal-tab" onclick="showDoc('datos', this)">🔒 Tratamiento de Datos</div>
+  </div>
+
+  <!-- ═══════════════ TÉRMINOS Y CONDICIONES ═══════════════ -->
+  <div class="legal-doc active" id="doc-terminos">
+    <div class="legal-card">
+      <div class="legal-updated">Última actualización: julio de 2026</div>
+
+      <h2>1. Qué es OrientaU</h2>
+      <p>OrientaU es un proyecto educativo desarrollado por estudiantes del programa técnico en
+      programación de la I.E. Misael Pastrana Borrero (Cúcuta, Norte de Santander), como parte de
+      un trabajo de aula y para su presentación en la feria de tecnología del colegio (Expotécnica).
+      La plataforma ofrece un test vocacional apoyado en inteligencia artificial, información sobre
+      universidades colombianas y herramientas para ayudarte a explorar posibles carreras.</p>
+
+      <div class="legal-note">
+        <strong>Importante:</strong> OrientaU es una herramienta de <strong>orientación</strong>, no un
+        servicio de asesoría profesional certificada. Las recomendaciones que genera (perfil vocacional,
+        universidades, carreras) son sugerencias basadas en tus respuestas y no reemplazan el
+        acompañamiento de un orientador escolar, psicólogo o consejero profesional.
+      </div>
+
+      <h2>2. Aceptación de estos términos</h2>
+      <p>Al crear una cuenta o usar OrientaU aceptas estos Términos y la Política de Tratamiento de
+      Datos que aparece en la otra pestaña de esta página. Si no estás de acuerdo, no deberías usar
+      la plataforma.</p>
+
+      <h2>3. Quién puede usar OrientaU</h2>
+      <p>OrientaU está pensado principalmente para estudiantes de educación media (9° a 11°) en
+      Colombia que están explorando qué estudiar después del colegio. Si eres menor de edad, se
+      recomienda que uses la plataforma con el conocimiento de tus padres, acudiente o docente,
+      especialmente antes de registrar una foto de perfil u otros datos personales.</p>
+
+      <h2>4. Tu cuenta</h2>
+      <ul>
+        <li>Los datos que registras (nombre, correo, contraseña, ciudad) deben ser reales y tuyos.</li>
+        <li>Eres responsable de mantener tu contraseña en privado. Si sospechas que alguien más
+        accedió a tu cuenta, cambia tu contraseña desde la opción "Olvidé mi contraseña".</li>
+        <li>Puedes usar el "Modo Demo" para probar la plataforma sin crear una cuenta ni guardar
+        datos permanentemente.</li>
+      </ul>
+
+      <h2>5. Contenido que tú generas</h2>
+      <p>Tus respuestas del test, tu foto de perfil (si decides subir una) y la demás información de
+      tu perfil son tuyas. Las usamos únicamente para darte el servicio (mostrarte tus resultados,
+      tu historial, personalizar tu experiencia) según se explica en la Política de Tratamiento de
+      Datos.</p>
+
+      <h2>6. Uso aceptable</h2>
+      <p>Al usar OrientaU te comprometes a no subir contenido ofensivo, ilegal o que no te
+      pertenezca (por ejemplo, fotos de otras personas sin su permiso), y a no intentar dañar,
+      sobrecargar o acceder sin autorización a partes de la plataforma o de su base de datos.</p>
+
+      <h2>7. Propiedad del proyecto</h2>
+      <p>El diseño, el código, el banco de preguntas y los contenidos originales de OrientaU
+      pertenecen a su equipo desarrollador (estudiantes de la I.E. Misael Pastrana Borrero) y se
+      comparten con fines educativos. La información sobre universidades y carreras proviene de
+      fuentes públicas y se ofrece solo como referencia — verifica siempre los datos oficiales
+      directamente con cada universidad antes de tomar decisiones importantes.</p>
+
+      <h2>8. Disponibilidad del servicio</h2>
+      <p>Por ser un proyecto estudiantil, OrientaU puede presentar interrupciones, errores o cambios
+      sin aviso previo mientras el equipo sigue desarrollándolo. No garantizamos que el servicio
+      esté disponible de forma ininterrumpida.</p>
+
+      <h2>9. Cambios a estos términos</h2>
+      <p>Podemos actualizar estos términos a medida que el proyecto evoluciona. Si hay cambios
+      importantes, lo indicaremos en la plataforma.</p>
+
+      <h2>10. Contacto</h2>
+      <p>¿Preguntas sobre estos términos? Escríbenos a
+      <a href="mailto:orientauoffv@gmail.com">orientauoffv@gmail.com</a>.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TRATAMIENTO DE DATOS ═══════════════ -->
+  <div class="legal-doc" id="doc-datos">
+    <div class="legal-card">
+      <div class="legal-updated">Última actualización: julio de 2026 · Con base en la Ley 1581 de 2012 y el Decreto 1377 de 2013 (Colombia)</div>
+
+      <h2>1. Responsable del tratamiento</h2>
+      <p>El equipo estudiantil de OrientaU (I.E. Misael Pastrana Borrero, Cúcuta) es responsable del
+      tratamiento de los datos personales que recolecta esta plataforma, en el marco de un proyecto
+      educativo.</p>
+
+      <h2>2. Qué datos recolectamos</h2>
+      <ul>
+        <li><strong>Datos de registro:</strong> nombre, correo electrónico, contraseña (cifrada),
+        ciudad.</li>
+        <li><strong>Datos de perfil (opcionales):</strong> foto de perfil, teléfono, colegio, grado,
+        biografía corta, intereses.</li>
+        <li><strong>Datos del test vocacional:</strong> tus respuestas, puntajes, perfil resultante,
+        universidades y carreras recomendadas, y el análisis generado por IA.</li>
+        <li><strong>Datos técnicos básicos:</strong> fecha y hora de tus sesiones de test.</li>
+      </ul>
+
+      <h2>3. Para qué usamos tus datos</h2>
+      <ul>
+        <li>Crear y proteger tu cuenta.</li>
+        <li>Generar tu perfil vocacional y tus recomendaciones de universidades/carreras.</li>
+        <li>Guardar tu historial para que puedas consultarlo más adelante.</li>
+        <li>Enviarte un correo si solicitas restablecer tu contraseña.</li>
+        <li>Mejorar la plataforma como parte del trabajo del equipo desarrollador.</li>
+      </ul>
+      <p>No vendemos ni compartimos tus datos con terceros con fines comerciales. Algunas
+      respuestas del test se envían de forma anónima (sin tu nombre) a un servicio de inteligencia
+      artificial (Claude, de Anthropic) únicamente para generar el análisis y las recomendaciones.</p>
+
+      <h2>4. Cómo protegemos tus datos</h2>
+      <ul>
+        <li>Tu contraseña se guarda cifrada (nunca en texto plano) usando un algoritmo estándar de
+        la industria (bcrypt).</li>
+        <li>Las conexiones a la base de datos usan consultas preparadas para prevenir inyección de
+        SQL.</li>
+        <li>Los enlaces para restablecer contraseña expiran después de 1 hora y solo se pueden usar
+        una vez.</li>
+      </ul>
+      <div class="legal-note">
+        <strong>Nota de transparencia:</strong> OrientaU es un proyecto estudiantil en desarrollo
+        activo, no una plataforma comercial con auditorías de seguridad profesionales. Aplicamos
+        buenas prácticas básicas de seguridad, pero te recomendamos no subir información
+        extremadamente sensible y usar una contraseña que no reutilices en otros servicios
+        importantes.
+      </div>
+
+      <h2>5. Menores de edad</h2>
+      <p>Sabemos que la mayoría de quienes usan OrientaU son estudiantes menores de edad. Si tienes
+      menos de 18 años, te recomendamos usar la plataforma con el acompañamiento de tus padres,
+      acudiente o un docente, especialmente al decidir si subes una foto de perfil u otros datos
+      personales. Si eres madre, padre o acudiente y quieres conocer, actualizar o eliminar los
+      datos de un estudiante menor de edad, puedes escribirnos usando el contacto al final de esta
+      página.</p>
+
+      <h2>6. Tus derechos (Habeas Data)</h2>
+      <p>Como titular de tus datos, en Colombia tienes derecho a:</p>
+      <ul>
+        <li><strong>Conocer</strong> qué datos tuyos tenemos guardados.</li>
+        <li><strong>Actualizar y rectificar</strong> tus datos si están desactualizados o son
+        incorrectos (puedes hacerlo tú mismo desde "Mi Perfil").</li>
+        <li><strong>Solicitar la eliminación</strong> de tu cuenta y tus datos cuando quieras.</li>
+        <li><strong>Revocar tu autorización</strong> para el tratamiento de tus datos en cualquier
+        momento.</li>
+        <li><strong>Presentar quejas</strong> ante la Superintendencia de Industria y Comercio (SIC)
+        si consideras que tus datos no se están manejando correctamente.</li>
+      </ul>
+
+      <h2>7. Cómo ejercer tus derechos</h2>
+      <p>Escríbenos a <a href="mailto:orientauoffv@gmail.com">orientauoffv@gmail.com</a> indicando tu
+      nombre y correo registrado, y qué quieres hacer (consultar, corregir o eliminar tus datos).
+      Responderemos en un plazo razonable.</p>
+
+      <h2>8. Cambios a esta política</h2>
+      <p>Podemos actualizar esta política a medida que el proyecto crezca. La fecha de "última
+      actualización" en la parte superior siempre reflejará la versión vigente.</p>
+
+      <div class="legal-contact">
+        Este documento fue redactado como guía inicial para un proyecto educativo y no reemplaza
+        asesoría legal profesional. Si OrientaU llega a publicarse fuera del entorno escolar, se
+        recomienda una revisión por un abogado especializado en protección de datos.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDoc(id, el){
+  document.querySelectorAll('.legal-doc').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.legal-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('doc-' + id).classList.add('active');
+  el.classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+</script>
+</body>
+</html>

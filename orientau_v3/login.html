@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrientaU – Iniciar Sesión</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase (reemplaza las llamadas a login.php / register.php / etc.) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <!-- Google Identity Services (botón "Continuar con Google") -->
+  <!-- Google Sign-In desactivado por ahora
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  -->
+  <!-- Three.js (modelo 3D "Graduation Ascension" del logo) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.185.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.185.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="model3d.js"></script>
+  <style>
+    body { background: radial-gradient(ellipse at 25% 15%, #070f24, #060b18 55%, #060e1e 100%); }
+
+    /* ── Logo 3D flotante interactivo ────────────────────────── */
+    .logo-wrap { text-align: center; margin-bottom: 28px; user-select: none; }
+
+    .logo3d-login-stage {
+      width: 160px; height: 160px;
+      margin: 0 auto 16px;
+      position: relative;
+      perspective: 700px;
+      cursor: grab;
+    }
+    .logo3d-login-stage:active { cursor: grabbing; }
+
+    /* Anillo exterior giratorio */
+    .logo-ring-outer {
+      position: absolute; inset: -16px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      border-top-color: rgba(79,142,247,0.6);
+      border-right-color: rgba(0,150,255,0.3);
+      animation: ringSpinLogin 4s linear infinite;
+      pointer-events: none;
+    }
+    .logo-ring-inner {
+      position: absolute; inset: -6px;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      border-bottom-color: rgba(120,60,255,0.5);
+      border-left-color: rgba(79,142,247,0.2);
+      animation: ringSpinLogin 6s linear infinite reverse;
+      pointer-events: none;
+    }
+    @keyframes ringSpinLogin { to { transform: rotate(360deg); } }
+
+    /* Glow pulsante debajo */
+    .logo-glow-floor {
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      width: 110px; height: 22px;
+      background: radial-gradient(ellipse, rgba(0,150,255,0.35) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: glowFloor 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes glowFloor {
+      0%,100% { opacity:.7; transform: translateX(-50%) scaleX(1); }
+      50%      { opacity:.3; transform: translateX(-50%) scaleX(.65); }
+    }
+
+    /* La imagen en sí */
+    .logo3d-img-wrap {
+      width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.08s linear;
+      will-change: transform;
+      /* Animación idle (se pausa con JS cuando hay mouse) */
+      animation: logoIdleFloat 5s ease-in-out infinite;
+    }
+    .logo3d-img-wrap.mouse-active { animation: none; }
+
+    @keyframes logoIdleFloat {
+      0%   { transform: perspective(700px) rotateX(0deg)   rotateY(0deg)   translateY(0px); }
+      25%  { transform: perspective(700px) rotateX(6deg)   rotateY(12deg)  translateY(-8px); }
+      50%  { transform: perspective(700px) rotateX(-4deg)  rotateY(-10deg) translateY(-14px); }
+      75%  { transform: perspective(700px) rotateX(5deg)   rotateY(8deg)   translateY(-6px); }
+      100% { transform: perspective(700px) rotateX(0deg)   rotateY(0deg)   translateY(0px); }
+    }
+
+    .logo3d-img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      filter:
+        drop-shadow(0 0 18px rgba(0,150,255,0.6))
+        drop-shadow(0 4px 30px rgba(0,0,0,0.5))
+        brightness(1.05) contrast(1.05);
+      transform: translateZ(0);
+    }
+
+    /* ── Modelo 3D real (Three.js), reemplaza la <img> plana ────── */
+    .logo3d-canvas {
+      width: 100%; height: 100%;
+      display: block;
+      opacity: 0;
+      transition: opacity .6s ease;
+      filter: drop-shadow(0 6px 24px rgba(0,0,0,0.45));
+    }
+    .logo3d-canvas.is-ready { opacity: 1; }
+
+    .logo3d-loader {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .logo3d-loader .m3d-spinner {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 3px solid rgba(144,202,249,.18);
+      border-top-color: var(--blue-400);
+      animation: spin .9s linear infinite;
+    }
+
+    /* Partículas sparkle login */
+    .login-sparks { position: absolute; inset: -20px; pointer-events: none; }
+    .spark {
+      position: absolute; width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--c, #4f8ef7);
+      animation: sparkFloat var(--d,4s) ease-in-out infinite;
+      animation-delay: var(--dl,0s);
+      opacity: 0;
+    }
+    .sk1{top:10%;left:15%;  --c:#4f8ef7;--d:3.5s;--dl:.0s;}
+    .sk2{top:5%; right:20%; --c:#4299e1;--d:4.2s;--dl:.8s;}
+    .sk3{bottom:20%;left:10%;--c:#7c3aed;--d:3.8s;--dl:1.2s;}
+    .sk4{bottom:10%;right:15%;--c:#4f8ef7;--d:4.5s;--dl:.4s;}
+    .sk5{top:45%;left:2%;   --c:#f59e0b;--d:3.2s;--dl:1.8s;}
+    .sk6{top:50%;right:3%;  --c:#4299e1;--d:4.0s;--dl:.6s;}
+    @keyframes sparkFloat {
+      0%   { opacity:0; transform:translateY(0) scale(0); }
+      20%  { opacity:1; transform:translateY(-8px) scale(1); }
+      80%  { opacity:.6; transform:translateY(-20px) scale(.7); }
+      100% { opacity:0; transform:translateY(-30px) scale(0); }
+    }
+
+    .logo-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px; font-weight: 900; color: #fff;
+    }
+    .logo-title span { color: #4f8ef7; text-shadow: 0 0 16px rgba(79,142,247,0.5); }
+    .logo-sub { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+                color: rgba(148,163,184,0.55); margin-top: 6px; }
+
+    /* btn overrides */
+    .btn-ghost { background:transparent; color:#4f8ef7; border:1.5px solid rgba(0,212,170,.4); font-weight:600; }
+    .btn-ghost:hover { background:rgba(0,212,170,.08); border-color:#4f8ef7; }
+    .tab-btn.active { border-bottom-color:#4f8ef7 !important; color:#4f8ef7 !important; }
+  </style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+<canvas id="particleCanvas"></canvas>
+<script>
+(function(){
+  const canvas = document.getElementById('particleCanvas');
+  if(!canvas) return;
+  canvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4';
+  const ctx = canvas.getContext('2d');
+  let W=canvas.width=window.innerWidth, H=canvas.height=window.innerHeight;
+  window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;});
+  const pts=[];
+  for(let i=0;i<40;i++) pts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+1});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(79,142,247,0.5)';ctx.fill();});
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(79,142,247,${.15*(1-d/130)})`;ctx.lineWidth=.7;ctx.stroke();}}
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<div class="screen active" id="screenLogin">
+  <div class="card">
+
+    <div class="logo-wrap">
+      <div class="logo3d-login-stage" id="loginLogoStage">
+        <div class="logo-ring-outer"></div>
+        <div class="logo-ring-inner"></div>
+        <div class="logo3d-img-wrap" id="loginLogoWrap">
+          <canvas class="logo3d-canvas" id="loginLogo3D" aria-hidden="true"></canvas>
+          <div class="logo3d-loader" id="loginLogo3DLoader"><div class="m3d-spinner"></div></div>
+          <img src="assets/logo_transparent.png" class="logo3d-img" id="loginLogoImg" alt="OrientaU" style="display:none">
+        </div>
+        <div class="logo-glow-floor"></div>
+        <div class="login-sparks">
+          <div class="spark sk1"></div><div class="spark sk2"></div>
+          <div class="spark sk3"></div><div class="spark sk4"></div>
+          <div class="spark sk5"></div><div class="spark sk6"></div>
+        </div>
+      </div>
+      <div class="logo-title">Orienta<span>U</span></div>
+      <div class="logo-sub">Orientación vocacional con inteligencia artificial</div>
+    </div>
+
+    <div class="tab-group">
+      <button class="tab-btn active" onclick="switchTab('login')">Iniciar Sesión</button>
+      <button class="tab-btn" onclick="switchTab('register')">Registrarse</button>
+    </div>
+
+    <div id="authAlert" class="alert"></div>
+
+    <div id="formLogin">
+      <div class="field">
+        <label>Correo Electrónico</label>
+        <input type="email" id="loginEmail" placeholder="tu@correo.com">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <div style="text-align:right;margin-top:-.3rem;margin-bottom:1rem;">
+        <a href="#" onclick="openForgotModal();return false;"
+           style="font-size:.8rem;color:rgba(255,255,255,.5);text-decoration:none;"
+           onmouseover="this.style.color='#4f8ef7'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+      <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Ingresar</button>
+      <div class="divider">o</div>
+      <!-- Login con Google desactivado por ahora
+      <div id="googleSignInBtn" style="display:flex;justify-content:center;margin-bottom:12px;"></div>
+      -->
+      <button class="btn btn-ghost" onclick="demoLogin()">🚀 Entrar con cuenta demo</button>
+    </div>
+
+    <div id="formRegister" style="display:none">
+      <div class="field">
+        <label>Nombre Completo</label>
+        <input type="text" id="regName" placeholder="Tu nombre completo">
+      </div>
+      <div class="field">
+        <label>Correo Electrónico</label>
+        <input type="email" id="regEmail" placeholder="tu@correo.com">
+      </div>
+      <div class="field">
+        <label>Ciudad</label>
+        <select id="regCity">
+          <option value="">Seleccionar ciudad...</option>
+          <option>Bogotá</option><option>Medellín</option><option>Cali</option>
+          <option>Barranquilla</option><option>Cartagena</option><option>Bucaramanga</option>
+          <option>Cúcuta</option><option>Manizales</option><option>Pereira</option>
+          <option>Santa Marta</option><option>Ibagué</option><option>Villavicencio</option>
+          <option>Montería</option><option>Pasto</option><option>Neiva</option>
+          <option>Armenia</option><option>Popayán</option><option>Valledupar</option>
+          <option>Sincelejo</option><option>Tunja</option><option>Otra ciudad</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="regPass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="field" style="display:flex; align-items:flex-start; gap:8px; margin-top:4px;">
+        <input type="checkbox" id="regAcceptTerms" style="width:auto; margin-top:3px; flex-shrink:0;">
+        <label for="regAcceptTerms" style="font-weight:400; font-size:0.85rem; line-height:1.4; color:rgba(255,255,255,0.7);">
+          Acepto los <a href="terminos.html" target="_blank" style="color:var(--blue-300);">Términos y Condiciones</a>
+          y la <a href="terminos.html" target="_blank" style="color:var(--blue-300);">Política de Tratamiento de Datos</a>.
+        </label>
+      </div>
+      <button class="btn btn-primary" id="btnRegister" onclick="doRegister()">Crear Cuenta</button>
+    </div>
+
+  </div>
+  <div style="text-align:center; margin-top:16px; font-size:0.78rem; color:rgba(255,255,255,0.35);">
+    <a href="terminos.html" target="_blank" style="color:rgba(255,255,255,0.45);">Términos y Condiciones · Tratamiento de Datos</a>
+  </div>
+</div>
+
+<!-- Modal recuperar contraseña -->
+<div id="forgotOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:linear-gradient(135deg,#1e1b4b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:2rem 1.8rem;max-width:400px;width:100%;position:relative;box-shadow:0 25px 60px rgba(0,0,0,.5);">
+    <button onclick="closeForgotModal()" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.08);border:none;cursor:pointer;color:rgba(255,255,255,.6);border-radius:50%;width:30px;height:30px;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+    <div style="text-align:center;margin-bottom:1.2rem;">
+      <div style="font-size:2.2rem;">🔑</div>
+      <h3 style="color:#fff;font-size:1.2rem;margin:.4rem 0 .2rem;font-family:'Outfit',sans-serif;font-weight:700;">Recuperar contraseña</h3>
+      <p style="color:rgba(255,255,255,.5);font-size:.82rem;margin:0;">Ingresa tu correo y te enviaremos el enlace</p>
+    </div>
+    <div id="forgotAlert" class="alert" style="margin-bottom:.8rem;"></div>
+    <div id="forgotStep1">
+      <div class="field"><label>Correo</label><input type="email" id="forgotEmail" placeholder="tu@correo.com" onkeydown="if(event.key==='Enter') doForgot()"></div>
+      <button class="btn btn-primary" id="btnForgot" onclick="doForgot()">Enviar enlace de recuperación</button>
+    </div>
+    <div id="forgotStep2" style="display:none;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:.5rem;">📬</div>
+      <p style="color:#86efac;font-weight:600;">¡Enlace generado!</p>
+      <a id="devResetLink" href="#" target="_blank" style="display:inline-block;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;padding:.5rem 1.2rem;border-radius:10px;font-size:.82rem;text-decoration:none;word-break:break-all;">🔗 Abrir enlace de prueba</a><br>
+      <button class="btn btn-ghost" onclick="closeForgotModal()" style="margin-top:.8rem;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+/* ── Logo 3D mouse tracking – Login ──────────────────────────── */
+(function(){
+  const stage = document.getElementById('loginLogoStage');
+  const wrap  = document.getElementById('loginLogoWrap');
+  if(!stage || !wrap) return;
+
+  const MAX_ROT = 26; // grados máx
+  let raf = null;
+  let targetX = 0, targetY = 0;
+  let currentX = 0, currentY = 0;
+  let inside = false;
+
+  stage.addEventListener('mousemove', e => {
+    inside = true;
+    wrap.classList.add('mouse-active');
+    const r  = stage.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width  / 2)) / (r.width  / 2);
+    const dy = (e.clientY - (r.top  + r.height / 2)) / (r.height / 2);
+    targetX =  dy * -MAX_ROT;   // rotateX inverted
+    targetY =  dx *  MAX_ROT;   // rotateY
+    startRAF();
+  });
+
+  stage.addEventListener('mouseleave', () => {
+    inside  = false;
+    targetX = 0; targetY = 0;
+    // let lerp ease back, then restore idle animation
+    setTimeout(() => {
+      if(!inside) wrap.classList.remove('mouse-active');
+    }, 700);
+  });
+
+  /* Also respond to global mouse for subtle parallax even outside card */
+  document.addEventListener('mousemove', e => {
+    if(inside) return;
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    const dx = (e.clientX - cx) / cx;
+    const dy = (e.clientY - cy) / cy;
+    targetX = dy * -(MAX_ROT * 0.35);
+    targetY = dx *  (MAX_ROT * 0.35);
+  });
+
+  function startRAF(){
+    if(raf) return;
+    raf = requestAnimationFrame(tick);
+  }
+  function tick(){
+    currentX += (targetX - currentX) * 0.12;
+    currentY += (targetY - currentY) * 0.12;
+    wrap.style.transform =
+      `perspective(700px) rotateX(${currentX.toFixed(2)}deg) rotateY(${currentY.toFixed(2)}deg) scale(1.04)`;
+    const dX = Math.abs(targetX - currentX);
+    const dY = Math.abs(targetY - currentY);
+    if(dX < 0.05 && dY < 0.05 && !inside){ raf = null; return; }
+    raf = requestAnimationFrame(tick);
+  }
+})();
+</script>
+</body>
+</html>
