@@ -1258,14 +1258,14 @@ body {
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media(max-width:860px){
-  .hero-logo3d-stage { width:270px; height:300px; }
+  .hero-logo3d-stage { width:270px !important; height:300px !important; }
   .hero-logo-wrap    { width:200px; height:200px; }
-  .hr1 { width:250px; height:250px; }
-  .hr2 { width:220px; height:100px; }
-  .hr3 { width:100px; height:220px; }
+  .hr1 { width:250px !important; height:250px !important; }
+  .hr2 { width:220px !important; height:100px !important; }
+  .hr3 { width:100px !important; height:220px !important; }
 }
 @media(max-width:500px){
-  .hero-logo3d-stage { width:220px; height:250px; }
+  .hero-logo3d-stage { width:220px !important; height:250px !important; }
   .hero-logo-wrap    { width:170px; height:170px; }
 }
 
