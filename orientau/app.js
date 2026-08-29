@@ -1116,15 +1116,8 @@ function showGreeting(){
   el.classList.add('show');
 }
 
-// ── Modal Bienvenida (5 preguntas onboarding) ─────────────────
+// ── Modal Bienvenida (onboarding) ──────────────────────────────
 const WELCOME_STEPS = [
-  {
-    icon: '🎓',
-    title: '¡Bienvenido/a a OrientaU!',
-    desc: 'Somos tu plataforma de orientación vocacional con Inteligencia Artificial. En solo unos pasos estarás listo para descubrir tu camino profesional.',
-    question: null,
-    action: 'Continuar →'
-  },
   {
     icon: '🎯',
     title: '¿En qué grado estás?',
@@ -1148,9 +1141,9 @@ const WELCOME_STEPS = [
   },
   {
     icon: '💬',
-    title: '¿Qué esperas de OrientaU?',
-    desc: 'Cuéntanos tu meta principal para esta plataforma.',
-    question: { id:'wMeta', type:'select', opts:['Descubrir qué carrera estudiar','Conocer qué universidades existen en Colombia','Explorar mis habilidades y aptitudes','Todo lo anterior 🚀'] },
+    title: '¿Qué te gustaría estudiar?',
+    desc: 'Aunque no estés seguro/a todavía, esto nos da una primera pista de por dónde empezar a orientarte.',
+    question: { id:'wCarrera', type:'select', opts:['Ciencias Exactas (matemáticas, física, química)','Ingeniería y tecnología','Ciencias Básicas (biología, investigación)','Salud y Ciencias Humanas (medicina, psicología)','Ciencias Sociales (derecho, comunicación)','Administración y negocios','Artes y Diseño','Todavía no lo sé']  },
     action: '¡Empezar! ✨'
   }
 ];
@@ -1187,7 +1180,7 @@ function renderWelcomeStep(){
     <p class="w-desc">${s.desc}</p>
     ${questionHTML}
     <button class="btn btn-gold w-btn" onclick="nextWelcomeStep()">${s.action}</button>
-    ${welcomeStep > 0 ? '<button class="btn btn-outline w-btn-skip" onclick="skipWelcome()">Saltar introducción</button>' : ''}
+    <button class="btn btn-outline w-btn-skip" onclick="skipWelcome()">Saltar introducción</button>
   `;
 }
 
@@ -1215,13 +1208,18 @@ async function finishWelcome(){
   // Guardar que ya no es nuevo + datos de onboarding
   if(!currentUser.demo){
     try {
+      const materia  = welcomeAnswers.wMateria || '';
+      const carrera  = welcomeAnswers.wCarrera || '';
       await sb.from('perfiles').update({
         avatar_emoji: '🎓',
         avatar_color: '#1976d2',
         grado: welcomeAnswers.wGrado || '',
-        intereses: welcomeAnswers.wMateria || '',
+        ciudad: welcomeAnswers.wCiudad || '',
+        intereses: [materia, carrera && `Le gustaría estudiar: ${carrera}`].filter(Boolean).join(' · '),
         es_nuevo: false
       }).eq('id', currentUser.id);
+      currentUser.ciudad = welcomeAnswers.wCiudad || currentUser.ciudad;
+      sessionStorage.setItem('orientau_user', JSON.stringify(currentUser));
     } catch(e){}
     userProfile = { ...userProfile, es_nuevo: 0 };
   }

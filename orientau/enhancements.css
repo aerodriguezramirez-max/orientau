@@ -2108,6 +2108,11 @@ body {
 @media(max-width:680px){
   .mobile-bottom-nav { display: flex; align-items: center; justify-content: space-around; }
   .screen.active { padding-bottom: 80px; }
+  /* La barra de navegación de escritorio se reemplaza por la de abajo en móvil */
+  .navbar { display: none !important; }
+  #screenDash, #screenTest, #screenResults, #screenExplorer {
+    padding-top: 20px !important;
+  }
 }
 .mob-nav-btn {
   display: flex;
