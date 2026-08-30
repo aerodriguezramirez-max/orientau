@@ -114,7 +114,7 @@ body {
   pointer-events: none;
 }
 
-.hero-content { display: flex; flex-direction: column; gap: 0; }
+.hero-content { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 
 .dash-hero h1 {
   font-family: 'Playfair Display', serif !important;
@@ -1090,6 +1090,7 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  min-width: 0;
 }
 .hero-logo3d-stage {
   position: relative;
