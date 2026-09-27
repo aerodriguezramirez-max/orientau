@@ -267,10 +267,12 @@
           <option>Sincelejo</option><option>Tunja</option><option>Otra ciudad</option>
         </select>
       </div>
-      <div class="field">
+            <div class="field">
         <label>Contraseña</label>
-        <input type="password" id="regPass" placeholder="Mínimo 6 caracteres">
-        <button type="button" class="toggle-pass" onclick="togglePassword('regPass', this)" aria-label="Mostrar contraseña">👁️</button>
+        <div class="password-wrap">
+          <input type="password" id="regPass" placeholder="Mínimo 6 caracteres">
+          <button type="button" class="toggle-pass" onclick="togglePassword('regPass', this)" aria-label="Mostrar contraseña">👁️</button>
+        </div>
       </div>
       <div class="field" style="display:flex; align-items:flex-start; gap:8px; margin-top:4px;">
         <input type="checkbox" id="regAcceptTerms" style="width:auto; margin-top:3px; flex-shrink:0;">
