@@ -226,6 +226,7 @@
       <div class="field">
         <label>Contraseña</label>
         <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+        <button type="button" class="toggle-pass" onclick="togglePassword('loginPass', this)" aria-label="Mostrar contraseña">👁️</button>
       </div>
       <div style="text-align:right;margin-top:-.3rem;margin-bottom:1rem;">
         <a href="#" onclick="openForgotModal();return false;"
@@ -267,6 +268,7 @@
       <div class="field">
         <label>Contraseña</label>
         <input type="password" id="regPass" placeholder="Mínimo 6 caracteres">
+        <button type="button" class="toggle-pass" onclick="togglePassword('regPass', this)" aria-label="Mostrar contraseña">👁️</button>
       </div>
       <div class="field" style="display:flex; align-items:flex-start; gap:8px; margin-top:4px;">
         <input type="checkbox" id="regAcceptTerms" style="width:auto; margin-top:3px; flex-shrink:0;">
