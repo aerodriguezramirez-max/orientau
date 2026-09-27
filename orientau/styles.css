@@ -180,6 +180,17 @@ input:focus, select:focus {
 }
 select option { background: var(--blue-800); color: var(--white); }
 
+/* ── Botón mostrar/ocultar contraseña ──────────────────────── */
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 44px; }
+.toggle-pass {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  font-size: 17px; line-height: 1; padding: 6px;
+  color: var(--gray-400); opacity: .8;
+}
+.toggle-pass:hover { color: var(--blue-300); opacity: 1; }
+
 /* ── Alertas ────────────────────────────────────────────────── */
 .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; display: none; }
 .alert.error   { background: rgba(239,68,68,.15);  border: 1px solid rgba(239,68,68,.35);  color: var(--status-danger-text); }
