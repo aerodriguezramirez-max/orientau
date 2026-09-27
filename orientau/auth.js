@@ -220,6 +220,14 @@ async function doForgot(){
     alertEl.textContent = 'Error de conexión. Revisa tu internet.';
     alertEl.className = 'alert error show';
   }
+  
+// ── Mostrar/ocultar contraseña ──────────────────────────────────
+function togglePassword(inputId, btn){
+  const input = document.getElementById(inputId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁️';
+}
 
   btn.disabled = false;
   btn.textContent = 'Enviar enlace de recuperación';
