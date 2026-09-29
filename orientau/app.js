@@ -575,8 +575,11 @@ const QUESTION_BANK = [
 ];
 
 // Opciones Likert fijas para todas las preguntas
-const LIKERT_OPTS = ["Sí, definitivamente","Sí, bastante","Un poco","No realmente"];
-const SCORE_MAP   = [4, 3, 1, 0];
+const LIKERT_OPTS = ["Sí, definitivamente","Sí, un poco","Moderado","No, un poco","No realmente"];
+const SCORE_MAP   = [4, 3, 2, 1, 0];
+
+// Escapa texto para usarlo dentro de atributos HTML (data-uni="...")
+function escAttr(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 
 // Sesión de test (se rellena en startTest)
 let QUESTIONS = [];
@@ -1850,6 +1853,22 @@ document.addEventListener('keydown', e => {
   if(e.key === 'ArrowLeft') prevQ();
 });
 
+// Botones de respuesta (uno por opción de LIKERT_OPTS)
+function optionsHtml(){
+  return LIKERT_OPTS.map((opt, i) => `
+        <button type="button" class="option-btn ${State.answers[State.currentQ] === i ? 'selected' : ''}" style="--i:${i}" aria-pressed="${State.answers[State.currentQ] === i}" onclick="selectOpt(${i})">
+          <span class="option-text">${opt}</span>
+        </button>`).join('');
+}
+// Entrada escalonada de las opciones al cambiar de pregunta
+function playOptionsEnter(){
+  const g = document.getElementById('optionsGrid');
+  if(!g) return;
+  g.classList.remove('opts-enter'); void g.offsetWidth; g.classList.add('opts-enter');
+  clearTimeout(g._enterT);
+  g._enterT = setTimeout(() => g.classList.remove('opts-enter'), 800);
+}
+
 function renderQuestion(direction = 'forward'){
   const q = QUESTIONS[State.currentQ];
   const total = QUESTIONS.length;
@@ -1859,7 +1878,7 @@ function renderQuestion(direction = 'forward'){
   const card = document.querySelector('.question-card');
   if(card){
     // Exit animation
-    card.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+    card.style.transition = 'transform 0.22s cubic-bezier(.16,1,.3,1), opacity 0.22s ease';
     card.style.transform = direction === 'forward' ? 'translateX(-32px)' : 'translateX(32px)';
     card.style.opacity = '0';
 
@@ -1867,10 +1886,8 @@ function renderQuestion(direction = 'forward'){
       // Update content
       document.getElementById('qCategory').textContent = q.cat;
       document.getElementById('qText').textContent     = q.text;
-      document.getElementById('optionsGrid').innerHTML = LIKERT_OPTS.map((opt, i) => `
-        <button class="option-btn ${State.answers[State.currentQ] === i ? 'selected' : ''}" onclick="selectOpt(${i})">
-          <span class="option-text">${opt}</span>
-        </button>`).join('');
+      document.getElementById('optionsGrid').innerHTML = optionsHtml();
+      playOptionsEnter();
 
       document.getElementById('btnPrev').style.visibility = State.currentQ === 0 ? 'hidden' : 'visible';
       document.getElementById('btnNext').textContent = State.currentQ === total - 1 ? 'Ver Resultados ✨' : 'Siguiente →';
@@ -1892,10 +1909,8 @@ function renderQuestion(direction = 'forward'){
   } else {
     document.getElementById('qCategory').textContent = q.cat;
     document.getElementById('qText').textContent     = q.text;
-    document.getElementById('optionsGrid').innerHTML = LIKERT_OPTS.map((opt, i) => `
-      <button class="option-btn ${State.answers[State.currentQ] === i ? 'selected' : ''}" onclick="selectOpt(${i})">
-        <span class="option-text">${opt}</span>
-      </button>`).join('');
+    document.getElementById('optionsGrid').innerHTML = optionsHtml();
+    playOptionsEnter();
     document.getElementById('btnPrev').style.visibility = State.currentQ === 0 ? 'hidden' : 'visible';
     document.getElementById('btnNext').textContent = State.currentQ === total - 1 ? 'Ver Resultados ✨' : 'Siguiente →';
   }
@@ -1903,11 +1918,20 @@ function renderQuestion(direction = 'forward'){
 
 function selectOpt(i){
   State.answers[State.currentQ] = i;
-  document.querySelectorAll('.option-btn').forEach((b, idx) => b.classList.toggle('selected', idx === i));
+  document.querySelectorAll('.option-btn').forEach((b, idx) => {
+    const on = idx === i;
+    b.classList.toggle('selected', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.classList.remove('pop');
+    if(on){ void b.offsetWidth; b.classList.add('pop'); }
+  });
+  try { if(navigator.vibrate) navigator.vibrate(10); } catch(e){}
 }
 
 function nextQ(){
   if(State.answers[State.currentQ] === null){
+    const grid = document.getElementById('optionsGrid');
+    if(grid){ grid.classList.remove('shake'); void grid.offsetWidth; grid.classList.add('shake'); }
     document.querySelectorAll('.option-btn').forEach(b => {
       b.style.borderColor = 'rgba(239,68,68,.5)';
       setTimeout(() => b.style.borderColor = '', 900);
@@ -2435,7 +2459,7 @@ function renderIcfesPanel(unis) {
       return `
         <div class="icfes-uni-card ${u.isLocal ? 'icfes-card-local' : ''}" data-min="${u.icfes.min}">
           <div class="iuc-header">
-            <span class="iuc-icon">${u.icon}</span>
+            <span class="iuc-icon uni-photo uni-photo--thumb" data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}"><span class="uni-photo-fallback">${u.icon}</span></span>
             <div class="iuc-info">
               <div class="iuc-name">${u.name} ${localTag}</div>
               <div class="iuc-city">📍 ${u.city}</div>
@@ -3054,11 +3078,8 @@ function renderUnisGrid(unis, careerFilterName){
     }
 
     const href = u.url || '#';
-    const campusUrl = UNI_CAMPUS[u.name];
     const bgIdx = idx % 8;
-    const campusBanner = campusUrl
-      ? `<img class="uni-campus-img" src="${campusUrl}" alt="${u.name}" loading="lazy" onerror="this.style.display='none'">`
-      : `<div class="uni-campus-placeholder bg-${bgIdx}"><span class="campus-emoji">${u.icon}</span></div>`;
+    const campusBanner = `<div class="uni-campus-placeholder uni-photo bg-${bgIdx}" data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}" role="img" aria-label="Campus de ${escAttr(u.name)}"><span class="campus-emoji">${u.icon}</span></div>`;
     const badgeInner = u.logo
       ? `<img src="${u.logo}" alt="" style="width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:26px;">${u.icon}</span>`
       : u.icon;
@@ -3500,6 +3521,7 @@ function renderExpResults(unis, ai){
     return `
       <div class="exp-uni-card ${isLocal ? 'exp-card-local' : ''}" style="animation-delay:${i*0.07}s">
         <div class="exp-uni-card-top" style="background:linear-gradient(135deg,${bgGradient} 0%,transparent 100%)">
+          <div class="uni-photo uni-photo-bg" data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}" aria-hidden="true"></div>
           <div class="exp-uni-rank">#${i+1}</div>
           <div class="exp-uni-icon-wrap">
             <span class="exp-uni-icon">${u.icon}</span>

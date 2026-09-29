@@ -3760,3 +3760,201 @@ body.light-mode .rv4-icfes-label { color:rgba(30,45,90,0.62) !important; }
   .chat-messages { min-height: 160px; }
   .chat-msg { max-width: 90%; font-size: 0.82rem; }
 }
+
+/* Cerrar sesión, accesible desde el Perfil (antes solo vivía en el
+   navbar de escritorio, invisible para usuarios de móvil) */
+.profile-logout-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(239,68,68,0.1);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm, 10px);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.profile-logout-btn:hover {
+  background: rgba(239,68,68,0.18);
+  border-color: rgba(239,68,68,0.5);
+}
+body.light-mode .profile-logout-btn {
+  background: rgba(239,68,68,0.06);
+  color: #dc2626;
+  border-color: rgba(239,68,68,0.25);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   REMASTER v5 — fotos de campus + test con 5 opciones + clics firmes
+   (bloque al final a propósito: gana sobre las capas anteriores)
+   Usa las propiedades `scale` / `translate` para animar sin pelear
+   con los `transform: ... !important` que ya existían.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --ease-out:    cubic-bezier(.16, 1, .3, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ── Fotos de universidades ─────────────────────────────── */
+.uni-photo { position: relative; overflow: hidden; isolation: isolate; }
+.uni-photo-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0;
+  opacity: 0; scale: 1.07;
+  filter: saturate(.9) contrast(1.05) brightness(.92);
+  transition: opacity .8s var(--ease-out), scale 1.3s var(--ease-out), filter .4s ease;
+}
+/* Velo azul translúcido: la foto se "funde" con la tarjeta */
+.uni-photo::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(135deg, rgba(21,101,192,.38), rgba(6,11,24,.12) 70%);
+  opacity: 0; transition: opacity .6s ease;
+}
+.uni-photo.has-photo::before { opacity: 1; }
+.uni-photo.has-photo .uni-photo-img { opacity: .58; scale: 1; }
+.uni-photo.has-photo .campus-emoji,
+.uni-photo.has-photo .uni-photo-fallback { opacity: 0; scale: .8; }
+.uni-photo .campus-emoji,
+.uni-photo .uni-photo-fallback { transition: opacity .4s ease, scale .4s var(--ease-out); }
+
+/* Banner de la tarjeta de resultados */
+.rv4-uni-card:hover .uni-photo.has-photo .uni-photo-img { opacity: .8; scale: 1.05; filter: saturate(1.05) contrast(1.05) brightness(1); }
+.uni-campus-placeholder.uni-photo::after { z-index: 2; }
+
+/* Miniatura del panel ICFES */
+.uni-photo--thumb {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  background: linear-gradient(135deg, #0f2044, #1a3a6e);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.icfes-uni-card:hover .uni-photo--thumb.has-photo .uni-photo-img { opacity: .85; scale: 1.08; }
+
+/* Foto de fondo en el encabezado del explorador */
+.exp-uni-card-top { position: relative; overflow: hidden; isolation: isolate; }
+.exp-uni-card-top > *:not(.uni-photo-bg) { position: relative; z-index: 2; }
+.uni-photo-bg { position: absolute !important; inset: 0; z-index: 0; pointer-events: none; }
+.uni-photo-bg::after {
+  content: ''; position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(90deg, rgba(6,11,24,.94) 0%, rgba(6,11,24,.62) 55%, rgba(6,11,24,.28) 100%);
+  opacity: 0; transition: opacity .6s ease;
+}
+.uni-photo-bg.has-photo::after { opacity: 1; }
+.uni-photo-bg.has-photo .uni-photo-img { opacity: .5; }
+.exp-uni-card:hover .uni-photo-bg.has-photo .uni-photo-img { opacity: .72; scale: 1.05; }
+.exp-uni-card-top.has-uni-photo .exp-uni-icon-wrap { display: none; }
+.exp-uni-card-top.has-uni-photo .exp-uni-name { text-shadow: 0 1px 10px rgba(0,0,0,.6); }
+body.light-mode .uni-photo-bg::after {
+  background: linear-gradient(90deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.72) 55%, rgba(255,255,255,.4) 100%);
+}
+body.light-mode .exp-uni-card-top.has-uni-photo .exp-uni-name { text-shadow: none; }
+
+/* ── Test: 5 opciones, más firmes ───────────────────────── */
+#optionsGrid { gap: 10px !important; }
+#optionsGrid .option-btn {
+  justify-content: flex-start !important; text-align: left !important;
+  padding: 16px 20px 16px 60px !important;
+  border: 1.5px solid rgba(255,255,255,.13) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.045) !important;
+  color: rgba(255,255,255,.9) !important;
+  font-weight: 600 !important;
+  transform: none !important;
+  transition: scale .14s var(--ease-out), translate .2s var(--ease-out),
+              background .2s ease, border-color .2s ease,
+              box-shadow .25s ease, color .2s ease !important;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Indicador redondo a la izquierda */
+#optionsGrid .option-btn::before {
+  content: ''; position: absolute; left: 20px; top: 50%;
+  width: 22px; height: 22px; margin-top: -11px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  transition: background .2s ease, border-color .2s ease, box-shadow .25s ease;
+}
+/* Palomita */
+#optionsGrid .option-btn::after {
+  content: ''; position: absolute; left: 27.5px; top: 50%;
+  width: 6px; height: 11px; margin-top: -8px;
+  border: solid #fff; border-width: 0 2.4px 2.4px 0;
+  rotate: 45deg; scale: 0;
+  transition: scale .28s var(--ease-spring);
+}
+#optionsGrid .option-btn:hover {
+  translate: 4px 0;
+  border-color: rgba(79,142,247,.7) !important;
+  background: rgba(79,142,247,.1) !important;
+  color: #fff !important;
+}
+#optionsGrid .option-btn:hover::before { border-color: rgba(144,202,249,.9); }
+#optionsGrid .option-btn:active {
+  scale: .972; translate: 0 1px;
+  transition-duration: .07s !important;
+}
+#optionsGrid .option-btn.selected {
+  border-color: #4f8ef7 !important;
+  background: linear-gradient(100deg, rgba(79,142,247,.28), rgba(79,142,247,.1)) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(79,142,247,.22), 0 10px 28px rgba(79,142,247,.22) !important;
+  translate: 0 0;
+}
+#optionsGrid .option-btn.selected::before { background: #4f8ef7; border-color: #4f8ef7; box-shadow: 0 0 0 4px rgba(79,142,247,.25); }
+#optionsGrid .option-btn.selected::after  { scale: 1; }
+#optionsGrid .option-btn:focus-visible { outline: 2px solid #90caf9; outline-offset: 3px; }
+#optionsGrid .option-text { font-size: 15.5px !important; }
+
+/* "Moderado": neutral, un poco más sobrio */
+#optionsGrid .option-btn:nth-child(3) { border-style: dashed !important; }
+
+/* Animaciones del test */
+#optionsGrid.opts-enter .option-btn { animation: optIn .45s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
+#optionsGrid .option-btn.pop { animation: optPick .42s var(--ease-spring); }
+#optionsGrid.shake { animation: gridShake .42s var(--ease-out); }
+@keyframes optIn    { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes optPick  { 0% { scale: .965; } 55% { scale: 1.022; } 100% { scale: 1; } }
+@keyframes gridShake { 0%,100% { translate: 0 0; } 20% { translate: -7px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 3px 0; } }
+
+/* Modo claro */
+body.light-mode #optionsGrid .option-btn {
+  background: rgba(255,255,255,.85) !important;
+  border-color: rgba(79,142,247,.24) !important;
+  color: #1e2d5a !important;
+}
+body.light-mode #optionsGrid .option-btn::before { border-color: rgba(30,45,90,.3); }
+body.light-mode #optionsGrid .option-btn:hover { background: rgba(79,142,247,.1) !important; border-color: rgba(37,99,235,.5) !important; }
+body.light-mode #optionsGrid .option-btn.selected {
+  background: rgba(37,99,235,.12) !important; border-color: #2563eb !important; color: #1d4ed8 !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.16), 0 10px 24px rgba(37,99,235,.14) !important;
+}
+body.light-mode #optionsGrid .option-btn.selected::before { background: #2563eb; border-color: #2563eb; }
+@media (max-width: 600px) {
+  #optionsGrid .option-btn { padding: 15px 16px 15px 54px !important; }
+  #optionsGrid .option-btn::before { left: 16px; }
+  #optionsGrid .option-btn::after  { left: 23.5px; }
+}
+
+/* ── Clic firme en el resto de la app ───────────────────── */
+.btn, .nav-btn, .tab-btn, .rv4-btn-primary, .rv4-btn-secondary, .rv4-btn-ghost,
+.exp-uni-btn-3d, .exp-uni-btn-visit, .icfes-tab, .hist-action-btn, .career-rec-card {
+  -webkit-tap-highlight-color: transparent;
+  transition-property: scale, translate, background, border-color, box-shadow, color, opacity, transform;
+  transition-timing-function: var(--ease-out);
+}
+.btn:active, .nav-btn:active, .tab-btn:active, .rv4-btn-primary:active, .rv4-btn-secondary:active,
+.rv4-btn-ghost:active, .exp-uni-btn-3d:active, .exp-uni-btn-visit:active, .icfes-tab:active,
+.hist-action-btn:active { scale: .965; translate: 0 1px; transition-duration: .07s; }
+.career-rec-card:active, .rv4-uni-card:active, .exp-uni-card:active { scale: .985; transition-duration: .08s; }
+.rv4-uni-card, .exp-uni-card { transition-property: scale, transform, box-shadow, border-color, background; }
+
+/* Accesibilidad: sin movimiento si el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
+  #optionsGrid.opts-enter .option-btn, #optionsGrid .option-btn.pop, #optionsGrid.shake { animation: none !important; }
+  .btn:active, .nav-btn:active, .tab-btn:active, .option-btn:active, .rv4-uni-card:active, .exp-uni-card:active { scale: 1 !important; translate: none !important; }
+  .uni-photo-img, .uni-photo::before { transition: opacity .2s linear !important; scale: 1 !important; }
+}
