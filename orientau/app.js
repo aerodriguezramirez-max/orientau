@@ -1923,9 +1923,53 @@ function selectOpt(i){
     b.classList.toggle('selected', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
     b.classList.remove('pop');
-    if(on){ void b.offsetWidth; b.classList.add('pop'); }
+    if(on){ void b.offsetWidth; b.classList.add('pop'); burstOption(b, idx); }
   });
   try { if(navigator.vibrate) navigator.vibrate(10); } catch(e){}
+}
+
+// ── Inclinación magnética de las opciones (solo mouse fino) ─────
+const CAN_HOVER_FINE = (typeof window.matchMedia === 'function')
+  && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const PREFERS_LESS_MOTION = (typeof window.matchMedia === 'function')
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+if (CAN_HOVER_FINE && !PREFERS_LESS_MOTION) {
+  document.addEventListener('pointermove', e => {
+    const btn = e.target.closest && e.target.closest('#optionsGrid .option-btn');
+    if(!btn) return;
+    const r = btn.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top)  / r.height;
+    btn.style.setProperty('--tX', ((px - 0.5) * 6).toFixed(2) + 'deg');
+    btn.style.setProperty('--tY', ((0.5 - py) * 3).toFixed(2) + 'deg');
+  });
+  document.addEventListener('pointerout', e => {
+    const btn = e.target.closest && e.target.closest('#optionsGrid .option-btn');
+    if(!btn || (e.relatedTarget && btn.contains(e.relatedTarget))) return;
+    btn.style.setProperty('--tX', '0deg');
+    btn.style.setProperty('--tY', '0deg');
+  });
+}
+
+// ── Ráfaga de chispas al confirmar una respuesta ────────────────
+const OPT_SEQ_COLORS = ['52,211,153','96,165,250','148,163,184','251,146,60','248,113,113'];
+function burstOption(btn, idx){
+  if(PREFERS_LESS_MOTION || !btn || !btn.getBoundingClientRect) return;
+  const rgb = OPT_SEQ_COLORS[idx] || '79,142,247';
+  const r = btn.getBoundingClientRect();
+  const originX = r.left + 30, originY = r.top + r.height / 2;
+  for(let k = 0; k < 6; k++){
+    const s = document.createElement('span');
+    s.className = 'opt-spark';
+    const ang  = (Math.PI * 2 * k / 6) + (Math.random() * 0.6 - 0.3);
+    const dist = 26 + Math.random() * 14;
+    s.style.cssText = `--dx:${(Math.cos(ang)*dist).toFixed(1)}px;--dy:${(Math.sin(ang)*dist).toFixed(1)}px;`
+      + `--c:rgb(${rgb});left:${originX}px;top:${originY}px;`;
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 650);
+  }
 }
 
 function nextQ(){

@@ -3865,11 +3865,13 @@ body.light-mode .exp-uni-card-top.has-uni-photo .exp-uni-name { text-shadow: non
   background: rgba(255,255,255,.045) !important;
   color: rgba(255,255,255,.9) !important;
   font-weight: 600 !important;
-  transform: none !important;
+  transform: perspective(700px) rotateX(var(--tY, 0deg)) rotateY(var(--tX, 0deg)) !important;
   transition: scale .14s var(--ease-out), translate .2s var(--ease-out),
               background .2s ease, border-color .2s ease,
-              box-shadow .25s ease, color .2s ease !important;
+              box-shadow .25s ease, color .2s ease, transform .18s var(--ease-out) !important;
   -webkit-tap-highlight-color: transparent;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 /* Indicador redondo a la izquierda */
 #optionsGrid .option-btn::before {
@@ -3957,4 +3959,62 @@ body.light-mode #optionsGrid .option-btn.selected::before { background: #2563eb;
   #optionsGrid.opts-enter .option-btn, #optionsGrid .option-btn.pop, #optionsGrid.shake { animation: none !important; }
   .btn:active, .nav-btn:active, .tab-btn:active, .option-btn:active, .rv4-uni-card:active, .exp-uni-card:active { scale: 1 !important; translate: none !important; }
   .uni-photo-img, .uni-photo::before { transition: opacity .2s linear !important; scale: 1 !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   REMASTER v6 — opciones del test: tinte de secuencia,
+   inclinación magnética (solo mouse) y ráfaga de confirmación.
+   Bloque al final a propósito: gana sobre v5 sin tocarlo.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Cada opción refleja su lugar en la escala (sí → moderado → no) */
+#optionsGrid .option-btn:nth-child(1) { --seq: 52,211,153; }  /* verde  – Sí, definitivamente */
+#optionsGrid .option-btn:nth-child(2) { --seq: 96,165,250; }  /* azul   – Sí, un poco */
+#optionsGrid .option-btn:nth-child(3) { --seq: 148,163,184; } /* gris   – Moderado */
+#optionsGrid .option-btn:nth-child(4) { --seq: 251,146,60; }  /* naranja– No, un poco */
+#optionsGrid .option-btn:nth-child(5) { --seq: 248,113,113; } /* rojo   – No realmente */
+
+#optionsGrid .option-btn::before { border-color: rgba(var(--seq,255,255,255), .55); }
+#optionsGrid .option-btn:hover {
+  border-color: rgba(var(--seq,79,142,247), .8) !important;
+  background: rgba(var(--seq,79,142,247), .1) !important;
+}
+#optionsGrid .option-btn:hover::before { border-color: rgba(var(--seq,144,202,249), .95); }
+#optionsGrid .option-btn.selected {
+  border-color: rgb(var(--seq,79,142,247)) !important;
+  background: linear-gradient(100deg, rgba(var(--seq,79,142,247),.28), rgba(var(--seq,79,142,247),.08)) !important;
+  box-shadow: 0 0 0 3px rgba(var(--seq,79,142,247),.24), 0 10px 30px rgba(var(--seq,79,142,247),.26) !important;
+}
+#optionsGrid .option-btn.selected::before {
+  background: rgb(var(--seq,79,142,247));
+  border-color: rgb(var(--seq,79,142,247));
+  box-shadow: 0 0 0 4px rgba(var(--seq,79,142,247),.28);
+  animation: optRingPulse .5s var(--ease-out);
+}
+@keyframes optRingPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--seq,79,142,247), .55); }
+  100% { box-shadow: 0 0 0 12px rgba(var(--seq,79,142,247), 0); }
+}
+
+/* Ráfaga de chispas al confirmar (creadas por app.js) */
+.opt-spark {
+  position: fixed; width: 5px; height: 5px; margin: -2.5px;
+  border-radius: 50%; background: var(--c, #4f8ef7);
+  pointer-events: none; z-index: 9999;
+  animation: optSpark .62s var(--ease-out) forwards;
+}
+@keyframes optSpark {
+  0%   { opacity: 1; translate: 0 0;         scale: 1; }
+  100% { opacity: 0; translate: var(--dx) var(--dy); scale: .25; }
+}
+
+/* Sin animación para quien pide menos movimiento, o sin mouse fino */
+@media (prefers-reduced-motion: reduce) {
+  #optionsGrid .option-btn { transform: none !important; }
+  #optionsGrid .option-btn.selected::before { animation: none; }
+  .opt-spark { display: none; }
+}
+@media (hover: none), (pointer: coarse) {
+  #optionsGrid .option-btn { transform: none !important; }
 }
