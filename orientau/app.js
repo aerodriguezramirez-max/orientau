@@ -4715,10 +4715,9 @@ function expShow3D(uniName) {
   // ── Carousel ─────────────────────────────────────────────────
   const carousel = document.getElementById('exp3dCarousel');
   const topUnis  = EXP_STATE.results.slice(0, 8);
-  const carItems = topUnis.map(function(u) {
+  const carItems = topUnis.map(function(u, i) {
     const active   = u.name === uniName ? ' active' : '';
-    const safeName = JSON.stringify(u.name);
-    return '<button class="e3d-carousel-item' + active + '" onclick="expShow3D(' + safeName + ')">' +
+    return '<button class="e3d-carousel-item' + active + '" onclick="expShow3DByIdx(' + i + ')">' +
       '<span class="e3d-ci-icon">' + u.icon + '</span>' +
       '<span class="e3d-ci-name">' + u.name.split(' ').slice(0, 3).join(' ') + '</span>' +
       '</button>';
