@@ -12,6 +12,12 @@ let userProfile  = null;
   if(!saved){ window.location.href = 'login.html'; return; }
   currentUser = JSON.parse(saved);
 
+  // Si es administrador, mostrar el panel de admin en vez del flujo normal
+  if(currentUser.es_admin){
+    showScreen('screenAdmin');
+    return;
+  }
+
   // Mostrar avatar en navbar
   renderNavUser();
 

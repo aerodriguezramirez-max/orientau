@@ -104,13 +104,14 @@ async function doLogin(){
 // Trae nombre/ciudad de la tabla "perfiles" y arma el MISMO objeto que ya
 // usaba el resto de la app (app.js sigue leyendo esto tal cual de sessionStorage)
 async function guardarUsuarioEnSesion(user){
-  const { data: perfil } = await sb.from('perfiles').select('nombre, ciudad').eq('id', user.id).single();
+  const { data: perfil } = await sb.from('perfiles').select('nombre, ciudad, es_admin').eq('id', user.id).single();
   const usuario = {
-    id:     user.id,
-    nombre: (perfil && perfil.nombre) || user.email.split('@')[0],
-    email:  user.email,
-    ciudad: (perfil && perfil.ciudad) || '',
-    demo:   false
+    id:       user.id,
+    nombre:   (perfil && perfil.nombre) || user.email.split('@')[0],
+    email:    user.email,
+    ciudad:   (perfil && perfil.ciudad) || '',
+    es_admin: !!(perfil && perfil.es_admin),
+    demo:     false
   };
   sessionStorage.setItem('orientau_user', JSON.stringify(usuario));
 }
@@ -216,19 +217,11 @@ async function doForgot(){
       document.getElementById('forgotStep1').style.display = 'none';
       document.getElementById('forgotStep2').style.display = 'block';
     }
-    } catch(e){
+  } catch(e){
     alertEl.textContent = 'Error de conexión. Revisa tu internet.';
     alertEl.className = 'alert error show';
   }
 
   btn.disabled = false;
   btn.textContent = 'Enviar enlace de recuperación';
-}
-
-// ── Mostrar/ocultar contraseña ──────────────────────────────────
-function togglePassword(inputId, btn){
-  const input = document.getElementById(inputId);
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  btn.textContent = isHidden ? '🤫' : '👁️';
 }
