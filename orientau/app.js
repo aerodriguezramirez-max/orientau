@@ -12,6 +12,10 @@ let userProfile  = null;
   if(!saved){ window.location.href = 'login.html'; return; }
   currentUser = JSON.parse(saved);
 
+  // Traer universidades/puntajes desde Supabase (si falla, sigue con
+  // el arreglo fijo del código — ver loadUniversidadesFromSupabase)
+  await loadUniversidadesFromSupabase();
+
   // Si es administrador, mostrar el panel de admin en vez del flujo normal
   if(currentUser.es_admin){
     showScreen('screenAdmin');
@@ -660,6 +664,110 @@ const UNI_CAMPUS = {
   "U. Pedagógica y Tecnológica (UPTC)":      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/UPTC_Tunja.jpg/600px-UPTC_Tunja.jpg",
   "Universidad de la Amazonia":       "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Universidad_de_la_Amazonia.jpg/600px-Universidad_de_la_Amazonia.jpg",
 };
+
+// ── Universidades: Supabase es la fuente real; este arreglo de abajo
+// solo queda como RESPALDO si falla la conexión o la tabla aún no existe.
+// loadUniversidadesFromSupabase() lo reemplaza en sitio (misma referencia)
+// para que todo el código que ya usa UNIVERSITIES siga funcionando igual.
+async function loadUniversidadesFromSupabase(){
+  try {
+    const { data, error } = await sb.from('universidades').select('*');
+    if(error || !Array.isArray(data) || data.length < 50){
+      console.warn('No se pudo cargar universidades desde Supabase, uso el respaldo del código.', error);
+      return false;
+    }
+    const transformadas = data.map(function(row){
+      const icfes = Object.assign({}, row.icfes_by_career || {});
+      if(row.icfes_min != null) icfes.min = row.icfes_min;
+      return {
+        name: row.name, city: row.city, region: row.region,
+        icon: row.icon, url: row.url, icfes: icfes,
+        areas: row.areas || [], careers: row.careers || []
+      };
+    });
+    UNIVERSITIES.length = 0;
+    transformadas.forEach(function(u){ UNIVERSITIES.push(u); });
+    EXP_PUBLIC.clear();
+    data.forEach(function(row){ if(row.is_public) EXP_PUBLIC.add(row.name); });
+    return true;
+  } catch(e){
+    console.warn('Error cargando universidades desde Supabase, uso el respaldo del código.', e);
+    return false;
+  }
+}
+
+// ── Panel de admin: buscar / editar / guardar puntajes ──────────
+let adminUniSeleccionada = null;
+
+function adminBuscarUnis(q){
+  const box = document.getElementById('adminResultados');
+  if(!box) return;
+  const term = (q || '').trim().toLowerCase();
+  if(term.length < 2){ box.innerHTML = ''; return; }
+  const matches = UNIVERSITIES.filter(function(u){ return u.name.toLowerCase().includes(term); }).slice(0, 8);
+  if(!matches.length){
+    box.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,.5);">Sin resultados.</div>';
+    return;
+  }
+  box.innerHTML = matches.map(function(u){
+    const idx = UNIVERSITIES.indexOf(u);
+    return '<div class="admin-uni-row" onclick="adminSeleccionarUni(' + idx + ')" '
+      + 'style="padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s;" '
+      + 'onmouseover="this.style.background=\'rgba(255,255,255,.07)\'" onmouseout="this.style.background=\'transparent\'">'
+      + '<strong>' + escAttr(u.name) + '</strong><br>'
+      + '<span style="font-size:12px;color:rgba(255,255,255,.55);">' + escAttr(u.city || '') + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function adminSeleccionarUni(idx){
+  const u = UNIVERSITIES[idx];
+  if(!u) return;
+  adminUniSeleccionada = u;
+  document.getElementById('adminEditorNombre').textContent = u.name;
+  document.getElementById('adminEditorMsg').textContent = '';
+  const icfes = u.icfes || {};
+  const campos = Object.keys(icfes).map(function(key){
+    const label = key === 'min' ? 'Puntaje mínimo general' : key;
+    return '<div class="field" style="margin-bottom:10px;">'
+      + '<label style="font-size:13px;">' + escAttr(label) + '</label>'
+      + '<input type="number" data-key="' + escAttr(key) + '" value="' + escAttr(icfes[key]) + '" '
+      + 'style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);'
+      + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
+      + '</div>';
+  }).join('');
+  document.getElementById('adminEditorCampos').innerHTML = campos;
+  document.getElementById('adminEditor').style.display = 'block';
+}
+
+async function adminGuardarPuntajes(){
+  if(!adminUniSeleccionada) return;
+  const msg = document.getElementById('adminEditorMsg');
+  const inputs = document.querySelectorAll('#adminEditorCampos input[data-key]');
+  const nuevoIcfes = {};
+  inputs.forEach(function(inp){ nuevoIcfes[inp.dataset.key] = Number(inp.value); });
+  const icfesByCareer = Object.assign({}, nuevoIcfes);
+  delete icfesByCareer.min;
+
+  msg.textContent = 'Guardando...';
+  msg.style.color = 'rgba(255,255,255,.6)';
+  try {
+    const { error } = await sb.from('universidades')
+      .update({ icfes_min: nuevoIcfes.min != null ? nuevoIcfes.min : null, icfes_by_career: icfesByCareer })
+      .eq('name', adminUniSeleccionada.name);
+    if(error){
+      msg.textContent = 'No se pudo guardar: ' + error.message;
+      msg.style.color = '#f87171';
+      return;
+    }
+    adminUniSeleccionada.icfes = nuevoIcfes;
+    msg.textContent = '✅ Guardado — ya quedó visible para los estudiantes.';
+    msg.style.color = '#4ade80';
+  } catch(e){
+    msg.textContent = 'Error de conexión, inténtalo de nuevo.';
+    msg.style.color = '#f87171';
+  }
+}
 
 const UNIVERSITIES = [
   // ── BOGOTÁ / CUNDINAMARCA ──────────────────────────────────

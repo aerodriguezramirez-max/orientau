@@ -179,10 +179,25 @@
 <!-- ══ ADMIN ═══════════════════════════════════════════════ -->
 <div class="screen" id="screenAdmin">
   <div class="dash-container">
-    <div class="card" style="max-width:520px;margin:60px auto;text-align:center;">
-      <h1 style="margin-bottom:12px;">Hola admin 👋</h1>
-      <p style="margin-bottom:24px;color:rgba(255,255,255,.75);">¿Qué piensas cambiar? Las herramientas de edición se irán agregando aquí.</p>
-      <button class="profile-logout-btn" onclick="doLogout()">🚪 Cerrar sesión</button>
+    <div class="card" style="max-width:640px;margin:40px auto;">
+      <h1 style="margin-bottom:4px;">Hola admin 👋</h1>
+      <p style="margin-bottom:20px;color:rgba(255,255,255,.75);">Busca una universidad para actualizar sus puntajes de ICFES.</p>
+
+      <input type="text" id="adminSearch" placeholder="Escribe el nombre de la universidad..."
+             oninput="adminBuscarUnis(this.value)"
+             style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
+                    background:rgba(255,255,255,.05);color:#fff;font-size:15px;margin-bottom:12px;box-sizing:border-box;">
+
+      <div id="adminResultados" style="max-height:240px;overflow-y:auto;margin-bottom:8px;"></div>
+
+      <div id="adminEditor" style="display:none;border-top:1px solid rgba(255,255,255,.12);padding-top:20px;margin-top:12px;">
+        <h3 id="adminEditorNombre" style="margin-bottom:14px;"></h3>
+        <div id="adminEditorCampos"></div>
+        <div id="adminEditorMsg" style="margin:10px 0 16px;font-size:14px;min-height:18px;"></div>
+        <button class="btn btn-primary" onclick="adminGuardarPuntajes()">💾 Guardar cambios</button>
+      </div>
+
+      <button class="profile-logout-btn" style="margin-top:28px;" onclick="doLogout()">🚪 Cerrar sesión</button>
     </div>
   </div>
 </div>
