@@ -682,7 +682,9 @@ async function loadUniversidadesFromSupabase(){
       return {
         name: row.name, city: row.city, region: row.region,
         icon: row.icon, url: row.url, icfes: icfes,
-        areas: row.areas || [], careers: row.careers || []
+        areas: row.areas || [], careers: row.careers || [],
+        foto: row.foto_url || null,
+        logo: row.logo_url || null
       };
     });
     UNIVERSITIES.length = 0;
@@ -693,6 +695,64 @@ async function loadUniversidadesFromSupabase(){
   } catch(e){
     console.warn('Error cargando universidades desde Supabase, uso el respaldo del código.', e);
     return false;
+  }
+}
+
+// ── Panel de admin: crear universidad nueva ──────────────────────
+function adminToggleCrear(){
+  const box = document.getElementById('adminCrearForm');
+  if(!box) return;
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function adminCrearUniversidad(){
+  const msg = document.getElementById('adminCrearMsg');
+  const nombre = document.getElementById('acNombre').value.trim();
+  if(!nombre){
+    msg.textContent = 'El nombre es obligatorio.';
+    msg.style.color = '#f87171';
+    return;
+  }
+  const ciudad = document.getElementById('acCiudad').value.trim();
+  const region = document.getElementById('acRegion').value.trim();
+  const icono = document.getElementById('acIcono').value.trim() || '🎓';
+  const url = document.getElementById('acUrl').value.trim();
+  const logo = document.getElementById('acLogo').value.trim();
+  const foto = document.getElementById('acFoto').value.trim();
+  const icfesMin = Number(document.getElementById('acIcfesMin').value) || null;
+  const areas = document.getElementById('acAreas').value.split(',').map(s => s.trim()).filter(Boolean);
+  const carreras = document.getElementById('acCarreras').value.split(',').map(s => s.trim()).filter(Boolean);
+  const esPublica = document.getElementById('acPublica').checked;
+
+  msg.textContent = 'Creando...';
+  msg.style.color = 'rgba(255,255,255,.6)';
+  try {
+    const { error } = await sb.from('universidades').insert({
+      name: nombre, city: ciudad || null, region: region || null,
+      icon: icono, url: url || null,
+      icfes_min: icfesMin, icfes_by_career: {},
+      areas: areas, careers: carreras,
+      logo_url: logo || null, foto_url: foto || null,
+      is_public: esPublica
+    });
+    if(error){
+      msg.textContent = 'No se pudo crear: ' + error.message;
+      msg.style.color = '#f87171';
+      return;
+    }
+    UNIVERSITIES.push({
+      name: nombre, city: ciudad, region: region, icon: icono, url: url,
+      icfes: icfesMin ? { min: icfesMin } : {}, areas: areas, careers: carreras,
+      logo: logo || null, foto: foto || null
+    });
+    msg.textContent = '✅ Universidad creada — ya aparece en las búsquedas.';
+    msg.style.color = '#4ade80';
+    ['acNombre','acCiudad','acRegion','acIcono','acUrl','acLogo','acFoto','acIcfesMin','acAreas','acCarreras']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('acPublica').checked = false;
+  } catch(e){
+    msg.textContent = 'Error de conexión, inténtalo de nuevo.';
+    msg.style.color = '#f87171';
   }
 }
 
@@ -736,7 +796,19 @@ function adminSeleccionarUni(idx){
       + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
       + '</div>';
   }).join('');
-  document.getElementById('adminEditorCampos').innerHTML = campos;
+  const campoFoto = '<div class="field" style="margin-bottom:10px;">'
+    + '<label style="font-size:13px;">Foto del campus (URL)</label>'
+    + '<input type="text" id="adminFotoUrl" value="' + escAttr(u.foto || '') + '" placeholder="https://..." '
+    + 'style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);'
+    + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
+    + '</div>';
+  const campoLogo = '<div class="field" style="margin-bottom:10px;">'
+    + '<label style="font-size:13px;">Logo (URL)</label>'
+    + '<input type="text" id="adminLogoUrl" value="' + escAttr(u.logo || '') + '" placeholder="https://..." '
+    + 'style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);'
+    + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
+    + '</div>';
+  document.getElementById('adminEditorCampos').innerHTML = campos + campoFoto + campoLogo;
   document.getElementById('adminEditor').style.display = 'block';
 }
 
@@ -748,12 +820,21 @@ async function adminGuardarPuntajes(){
   inputs.forEach(function(inp){ nuevoIcfes[inp.dataset.key] = Number(inp.value); });
   const icfesByCareer = Object.assign({}, nuevoIcfes);
   delete icfesByCareer.min;
+  const fotoInput = document.getElementById('adminFotoUrl');
+  const nuevaFoto = fotoInput ? fotoInput.value.trim() : '';
+  const logoInput = document.getElementById('adminLogoUrl');
+  const nuevoLogo = logoInput ? logoInput.value.trim() : '';
 
   msg.textContent = 'Guardando...';
   msg.style.color = 'rgba(255,255,255,.6)';
   try {
     const { error } = await sb.from('universidades')
-      .update({ icfes_min: nuevoIcfes.min != null ? nuevoIcfes.min : null, icfes_by_career: icfesByCareer })
+      .update({
+        icfes_min: nuevoIcfes.min != null ? nuevoIcfes.min : null,
+        icfes_by_career: icfesByCareer,
+        foto_url: nuevaFoto || null,
+        logo_url: nuevoLogo || null
+      })
       .eq('name', adminUniSeleccionada.name);
     if(error){
       msg.textContent = 'No se pudo guardar: ' + error.message;
@@ -761,6 +842,8 @@ async function adminGuardarPuntajes(){
       return;
     }
     adminUniSeleccionada.icfes = nuevoIcfes;
+    adminUniSeleccionada.foto = nuevaFoto || null;
+    adminUniSeleccionada.logo = nuevoLogo || null;
     msg.textContent = '✅ Guardado — ya quedó visible para los estudiantes.';
     msg.style.color = '#4ade80';
   } catch(e){
@@ -1895,9 +1978,9 @@ function startTest(testMode){
             <div class="tmc-badge tmc-badge-full">🔬 Máxima precisión</div>
             <div class="tmc-icon">🔬</div>
             <div class="tmc-title">Test Completo</div>
-            <div class="tmc-count">500 preguntas</div>
-            <div class="tmc-desc">Análisis exhaustivo de todas las áreas vocacionales. La IA tendrá más datos para un perfil ultra-preciso.</div>
-            <div class="tmc-time">⏱ ~40-60 min</div>
+            <div class="tmc-count">250 preguntas</div>
+            <div class="tmc-desc">Selección aleatoria amplia de las 500 preguntas, con representación pareja de todas las áreas vocacionales. La IA tendrá más datos para un perfil ultra-preciso.</div>
+            <div class="tmc-time">⏱ ~20-30 min</div>
             <button class="tmc-btn full-btn">Iniciar Test Completo 🔬</button>
           </div>
         </div>
@@ -1929,10 +2012,10 @@ function startTest(testMode){
   setTimeout(()=>{ toast.classList.remove('show'); setTimeout(()=>toast.remove(),400); }, 2800);
 
   if(testMode === 'full'){
-    // All 500 questions shuffled
+    // 250 preguntas aleatorias (25 por tema × 10 temas), mantiene representación pareja de cada área
     QUESTIONS = QUESTION_BANK.flatMap(topic => {
       const shuffled = [...topic.q].sort(() => Math.random() - 0.5);
-      return shuffled.map(text => ({ cat: topic.cat, text, areas: topic.areas }));
+      return shuffled.slice(0, 25).map(text => ({ cat: topic.cat, text, areas: topic.areas }));
     }).sort(() => Math.random() - 0.5);
   } else {
     // 30 random questions (3 per topic × 10 topics)
@@ -2515,19 +2598,51 @@ function renderUniMap(unis) {
   L.marker(userCoords, {icon: userIcon}).addTo(_leafletMap)
    .bindPopup(`<strong>📍 Tu ubicación</strong><br>${userCity || 'Cúcuta'}`);
 
+  // Distancia en línea recta (km) entre dos puntos [lat,lng], para el degradé de color
+  function haversineKm(a, b){
+    const R = 6371;
+    const dLat = (b[0]-a[0]) * Math.PI/180;
+    const dLon = (b[1]-a[1]) * Math.PI/180;
+    const lat1 = a[0] * Math.PI/180, lat2 = b[0] * Math.PI/180;
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  // Color entre azul (más cerca) y rojo (más lejos) según la posición relativa de cada uni
+  function colorPorDistancia(ratio){
+    const azul = [37, 99, 235], rojo = [239, 68, 68];
+    const rgb = azul.map((c,i) => Math.round(c + (rojo[i]-c)*ratio));
+    return `rgb(${rgb.join(',')})`;
+  }
+  const distancias = {};
+  unis.forEach(u => {
+    const c = UNI_COORDS[u.name];
+    if(c) distancias[u.name] = haversineKm(userCoords, c);
+  });
+  const distVals = Object.values(distancias);
+  const minDist = distVals.length ? Math.min(...distVals) : 0;
+  const maxDist = distVals.length ? Math.max(...distVals) : 1;
+
   let added = 0;
   unis.forEach(u => {
     const coords = UNI_COORDS[u.name];
     if(!coords) return;
     added++;
     const isLocal = u.isLocal;
-    const color = isLocal ? '#4f8ef7' : 'rgba(255,255,255,0.5)';
-    const shadow = isLocal ? '0 0 10px rgba(79,142,247,0.9)' : 'none';
-    const sz = isLocal ? 14 : 10;
-    const icon = L.divIcon({
-      html: `<div style="background:${color};border:2px solid ${isLocal?'#fff':'rgba(255,255,255,0.3)'};border-radius:50%;width:${sz}px;height:${sz}px;box-shadow:${shadow};cursor:pointer;"></div>`,
-      iconSize: [sz,sz], iconAnchor: [sz/2,sz/2], className: ''
-    });
+    const dist = distancias[u.name] || 0;
+    const ratio = maxDist > minDist ? (dist - minDist) / (maxDist - minDist) : 0;
+    const anillo = colorPorDistancia(ratio);
+    const sz = 30;
+    const icon = u.logo
+      ? L.divIcon({
+          html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;border:3px solid ${anillo};box-shadow:0 0 8px ${anillo};background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                   <img src="${u.logo}" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='${u.icon}';this.parentElement.style.fontSize='14px';">
+                 </div>`,
+          iconSize: [sz,sz], iconAnchor: [sz/2,sz/2], className: ''
+        })
+      : L.divIcon({
+          html: `<div style="background:${anillo};border:2px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 0 8px ${anillo};cursor:pointer;"></div>`,
+          iconSize: [16,16], iconAnchor: [8,8], className: ''
+        });
     const localBadge = isLocal ? '<span style="background:#4f8ef7;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;margin-left:4px;">Tu región</span>' : '';
     const routeUrl = `https://www.google.com/maps/dir/${userCoords[0]},${userCoords[1]}/${coords[0]},${coords[1]}`;
     const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coords[0]},${coords[1]}&heading=0&pitch=0`;
@@ -3237,7 +3352,8 @@ function renderUnisGrid(unis, careerFilterName){
 
     const href = u.url || '#';
     const bgIdx = idx % 8;
-    const campusBanner = `<div class="uni-campus-placeholder uni-photo bg-${bgIdx}" data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}" role="img" aria-label="Campus de ${escAttr(u.name)}"><span class="campus-emoji">${u.icon}</span></div>`;
+    const fotoStyle = u.foto ? ` style="background-image:url('${escAttr(u.foto)}');background-size:cover;background-position:center;"` : '';
+    const campusBanner = `<div class="uni-campus-placeholder uni-photo bg-${bgIdx}"${fotoStyle} data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}" role="img" aria-label="Campus de ${escAttr(u.name)}">${u.foto ? '' : `<span class="campus-emoji">${u.icon}</span>`}</div>`;
     const badgeInner = u.logo
       ? `<img src="${u.logo}" alt="" style="width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:26px;">${u.icon}</span>`
       : u.icon;
