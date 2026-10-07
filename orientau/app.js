@@ -15,6 +15,8 @@ let userProfile  = null;
   // Traer universidades/puntajes desde Supabase (si falla, sigue con
   // el arreglo fijo del código — ver loadUniversidadesFromSupabase)
   await loadUniversidadesFromSupabase();
+  window.UNIVERSITIES = UNIVERSITIES;
+  window.UNI_COORDS = UNI_COORDS;
 
   // Si es administrador, mostrar el panel de admin en vez del flujo normal
   if(currentUser.es_admin){
@@ -691,6 +693,8 @@ async function loadUniversidadesFromSupabase(){
     transformadas.forEach(function(u){ UNIVERSITIES.push(u); });
     EXP_PUBLIC.clear();
     data.forEach(function(row){ if(row.is_public) EXP_PUBLIC.add(row.name); });
+    window.UNIVERSITIES = UNIVERSITIES;
+    window.UNI_COORDS = UNI_COORDS;
     return true;
   } catch(e){
     console.warn('Error cargando universidades desde Supabase, uso el respaldo del código.', e);
@@ -808,7 +812,14 @@ function adminSeleccionarUni(idx){
     + 'style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);'
     + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
     + '</div>';
-  document.getElementById('adminEditorCampos').innerHTML = campos + campoFoto + campoLogo;
+  const carrerasActuales = (u.careers || []).join(', ');
+  const campoCarreras = '<div class="field" style="margin-bottom:10px;">'
+    + '<label style="font-size:13px;">Carreras (separadas por coma)</label>'
+    + '<input type="text" id="adminCarreras" value="' + escAttr(carrerasActuales) + '" placeholder="Ing. de Sistemas, Administración" '
+    + 'style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);'
+    + 'background:rgba(255,255,255,.05);color:#fff;box-sizing:border-box;">'
+    + '</div>';
+  document.getElementById('adminEditorCampos').innerHTML = campos + campoFoto + campoLogo + campoCarreras;
   document.getElementById('adminEditor').style.display = 'block';
 }
 
@@ -824,6 +835,8 @@ async function adminGuardarPuntajes(){
   const nuevaFoto = fotoInput ? fotoInput.value.trim() : '';
   const logoInput = document.getElementById('adminLogoUrl');
   const nuevoLogo = logoInput ? logoInput.value.trim() : '';
+  const carrerasInput = document.getElementById('adminCarreras');
+  const nuevasCarreras = carrerasInput ? carrerasInput.value.split(',').map(s => s.trim()).filter(Boolean) : adminUniSeleccionada.careers;
 
   msg.textContent = 'Guardando...';
   msg.style.color = 'rgba(255,255,255,.6)';
@@ -833,7 +846,8 @@ async function adminGuardarPuntajes(){
         icfes_min: nuevoIcfes.min != null ? nuevoIcfes.min : null,
         icfes_by_career: icfesByCareer,
         foto_url: nuevaFoto || null,
-        logo_url: nuevoLogo || null
+        logo_url: nuevoLogo || null,
+        careers: nuevasCarreras
       })
       .eq('name', adminUniSeleccionada.name);
     if(error){
@@ -844,6 +858,7 @@ async function adminGuardarPuntajes(){
     adminUniSeleccionada.icfes = nuevoIcfes;
     adminUniSeleccionada.foto = nuevaFoto || null;
     adminUniSeleccionada.logo = nuevoLogo || null;
+    adminUniSeleccionada.careers = nuevasCarreras;
     msg.textContent = '✅ Guardado — ya quedó visible para los estudiantes.';
     msg.style.color = '#4ade80';
   } catch(e){
@@ -2575,6 +2590,16 @@ const UNI_COORDS = {
 
 let _leafletMap = null;
 
+function toggleMapa3D(){
+  const box = document.getElementById('mapa3dContainer');
+  if(!box) return;
+  const visible = box.style.display !== 'none';
+  box.style.display = visible ? 'none' : 'block';
+  if(!visible && window.initMapa3D){
+    window.initMapa3D('mapa3dContainer');
+  }
+}
+
 function renderUniMap(unis) {
   const mapEl = document.getElementById('uniMap');
   if(!mapEl || !window.L) return;
@@ -2586,8 +2611,8 @@ function renderUniMap(unis) {
   const userCoords = [7.8939, -72.5078]; // Cúcuta default
   _leafletMap = L.map('uniMap', { zoomControl: true }).setView([5.5, -74.0], 5);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CARTO', subdomains: 'abcd', maxZoom: 19
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri', maxZoom: 16
   }).addTo(_leafletMap);
 
   // User location marker
