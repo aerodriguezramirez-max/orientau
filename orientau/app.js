@@ -17,6 +17,7 @@ let userProfile  = null;
   await loadUniversidadesFromSupabase();
   window.UNIVERSITIES = UNIVERSITIES;
   window.UNI_COORDS = UNI_COORDS;
+  await cargarFavoritos();
 
   // Si es administrador, mostrar el panel de admin en vez del flujo normal
   if(currentUser.es_admin){
@@ -592,6 +593,85 @@ const SCORE_MAP   = [4, 3, 2, 1, 0];
 
 // Escapa texto para usarlo dentro de atributos HTML (data-uni="...")
 function escAttr(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+function escJs(s){ return String(s == null ? "" : s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+// ── Favoritos ────────────────────────────────────────────────
+window._favoritosSet = new Set();
+
+async function cargarFavoritos(){
+  window._favoritosSet = new Set();
+  try {
+    const { data, error } = await sb.from('favoritos').select('tipo,nombre').eq('usuario_id', currentUser.id);
+    if(!error && Array.isArray(data)){
+      data.forEach(f => window._favoritosSet.add(f.tipo + ':' + f.nombre));
+    }
+  } catch(e){ /* si falla, simplemente arranca sin favoritos marcados */ }
+}
+
+function favBtnHtml(tipo, nombre){
+  const key = tipo + ':' + nombre;
+  const activo = window._favoritosSet.has(key);
+  return `<button class="fav-star-btn" data-key="${escAttr(key)}" onclick="event.stopPropagation();toggleFavorito('${tipo}','${escJs(nombre)}', this)" title="${activo ? 'Quitar de favoritos' : 'Agregar a favoritos'}" style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;padding:4px;flex-shrink:0;color:${activo ? '#FFD24A' : 'rgba(255,255,255,.4)'};">${activo ? '★' : '☆'}</button>`;
+}
+
+async function toggleFavorito(tipo, nombre, btnEl){
+  const key = tipo + ':' + nombre;
+  const yaFavorito = window._favoritosSet.has(key);
+  try {
+    if(yaFavorito){
+      await sb.from('favoritos').delete().eq('usuario_id', currentUser.id).eq('tipo', tipo).eq('nombre', nombre);
+      window._favoritosSet.delete(key);
+    } else {
+      await sb.from('favoritos').insert({ usuario_id: currentUser.id, tipo, nombre });
+      window._favoritosSet.add(key);
+    }
+  } catch(e){ console.warn('No se pudo actualizar favoritos', e); return; }
+
+  const activo = window._favoritosSet.has(key);
+  document.querySelectorAll(`.fav-star-btn[data-key="${CSS.escape(key)}"]`).forEach(b => {
+    b.textContent = activo ? '★' : '☆';
+    b.style.color = activo ? '#FFD24A' : 'rgba(255,255,255,.4)';
+    b.title = activo ? 'Quitar de favoritos' : 'Agregar a favoritos';
+  });
+  if(btnEl && !btnEl.dataset.key){ /* no-op, ya cubierto arriba por data-key */ }
+}
+
+function mostrarFavoritos(){
+  const existing = document.getElementById('favoritosModal');
+  if(existing) existing.remove();
+
+  const nombresUni = Array.from(window._favoritosSet)
+    .filter(k => k.startsWith('universidad:'))
+    .map(k => k.slice('universidad:'.length));
+  const universidades = nombresUni.map(n => UNIVERSITIES.find(u => u.name === n)).filter(Boolean);
+
+  const itemsHtml = universidades.length
+    ? universidades.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.08);">
+        <span style="font-size:22px;flex-shrink:0;">${u.icon}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#f0f0f0;">${u.name}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);">📍 ${u.city||''}</div>
+        </div>
+        <a href="${u.url||'#'}" target="_blank" rel="noopener" style="font-size:18px;text-decoration:none;flex-shrink:0;" title="Visitar sitio">🌐</a>
+        ${favBtnHtml('universidad', u.name)}
+      </div>`).join('')
+    : `<p style="color:rgba(255,255,255,.5);text-align:center;padding:24px 0;font-size:13px;">Todavía no marcaste ninguna universidad ⭐<br>Tocá la estrella en cualquier tarjeta para guardarla acá.</p>`;
+
+  const modal = document.createElement('div');
+  modal.id = 'favoritosModal';
+  modal.className = 'test-mode-modal-overlay';
+  modal.innerHTML = `
+    <div class="test-mode-modal" style="max-width:440px;">
+      <div class="test-mode-header">
+        <div class="test-mode-icon">⭐</div>
+        <h2>Mis Favoritos</h2>
+      </div>
+      <div style="max-height:50vh;overflow-y:auto;">${itemsHtml}</div>
+      <button class="btn btn-outline" style="width:100%;margin-top:14px;" onclick="document.getElementById('favoritosModal').remove()">Cerrar</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
 
 // Sesión de test (se rellena en startTest)
 let QUESTIONS = [];
@@ -1964,7 +2044,38 @@ const TOOLTIP_HINTS = [
   '¡Solo quedan unas pocas preguntas! Tu análisis vocacional está cerca.'
 ];
 
+// ── Reanudar test (guardado local, sin tocar Supabase) ──────────
+function guardarProgresoLocal(){
+  try {
+    localStorage.setItem('orientau_progreso', JSON.stringify({
+      questions: QUESTIONS, state: State, guardadoEn: Date.now()
+    }));
+  } catch(e){ /* si falla (localStorage lleno/bloqueado), no pasa nada grave */ }
+}
+function limpiarProgresoLocal(){
+  try { localStorage.removeItem('orientau_progreso'); } catch(e){}
+}
+
 function startTest(testMode){
+  // Si no se pasó modo, primero ver si hay un test sin terminar antes de mostrar el modal
+  if(!testMode){
+    let guardado = null;
+    try { guardado = JSON.parse(localStorage.getItem('orientau_progreso') || 'null'); } catch(e){}
+    if(guardado && Array.isArray(guardado.questions) && guardado.questions.length && guardado.state){
+      const siguiente = (guardado.state.currentQ || 0) + 1;
+      const total = guardado.questions.length;
+      const seguir = confirm(`Tenés un test sin terminar (ibas en la pregunta ${siguiente} de ${total}).\n\n¿Seguimos donde ibas?`);
+      if(seguir){
+        QUESTIONS = guardado.questions;
+        State = guardado.state;
+        renderQuestion();
+        showScreen('screenTest');
+        return;
+      } else {
+        limpiarProgresoLocal();
+      }
+    }
+  }
   // If no mode passed, show modal to choose
   if(!testMode){
     const existing = document.getElementById('testModeModal');
@@ -2041,6 +2152,7 @@ function startTest(testMode){
   }
 
   State = { currentQ: 0, answers: new Array(QUESTIONS.length).fill(null), streak: 0, lastAnswered: -1 };
+  limpiarProgresoLocal();
   renderQuestion();
   showScreen('screenTest');
 
@@ -2082,6 +2194,7 @@ function playOptionsEnter(){
 }
 
 function renderQuestion(direction = 'forward'){
+  guardarProgresoLocal();
   const q = QUESTIONS[State.currentQ];
   const total = QUESTIONS.length;
   document.getElementById('progCount').textContent = `${State.currentQ + 1} / ${total}`;
@@ -2138,6 +2251,7 @@ function selectOpt(i){
     if(on){ void b.offsetWidth; b.classList.add('pop'); burstOption(b, idx); }
   });
   try { if(navigator.vibrate) navigator.vibrate(10); } catch(e){}
+  guardarProgresoLocal();
 }
 
 // ── Inclinación magnética de las opciones (solo mouse fino) ─────
@@ -2249,6 +2363,7 @@ function animateTo(current, target, duration, stepText, activeId, doneIds = []) 
 }
 
 async function analyzeResults(){
+  limpiarProgresoLocal();
   _analyzeStart = Date.now();
   showScreen('screenLoading');
   showLoadingBar();
@@ -2660,7 +2775,7 @@ function renderUniMap(unis) {
     const icon = u.logo
       ? L.divIcon({
           html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;border:3px solid ${anillo};box-shadow:0 0 8px ${anillo};background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-                   <img src="${u.logo}" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='${u.icon}';this.parentElement.style.fontSize='14px';">
+                   <img src="${u.logo}" style="width:100%;height:100%;object-fit:contain;" onerror="if(this.parentElement){this.parentElement.innerHTML='${u.icon}';this.parentElement.style.fontSize='14px';}">
                  </div>`,
           iconSize: [sz,sz], iconAnchor: [sz/2,sz/2], className: ''
         })
@@ -2762,6 +2877,7 @@ function renderIcfesPanel(unis) {
               <div class="iuc-name">${u.name} ${localTag}</div>
               <div class="iuc-city">📍 ${u.city}</div>
             </div>
+            ${favBtnHtml('universidad', u.name)}
             <div class="iuc-min-badge" style="background:${tipoColor}22;border-color:${tipoColor}44;color:${tipoColor}">
               <span class="iuc-min-val">${u.icfes.min}</span>
               <span class="iuc-min-lbl">mín</span>
@@ -3380,7 +3496,7 @@ function renderUnisGrid(unis, careerFilterName){
     const fotoStyle = u.foto ? ` style="background-image:url('${escAttr(u.foto)}');background-size:cover;background-position:center;"` : '';
     const campusBanner = `<div class="uni-campus-placeholder uni-photo bg-${bgIdx}"${fotoStyle} data-uni="${escAttr(u.name)}" data-city="${escAttr(u.city)}" role="img" aria-label="Campus de ${escAttr(u.name)}">${u.foto ? '' : `<span class="campus-emoji">${u.icon}</span>`}</div>`;
     const badgeInner = u.logo
-      ? `<img src="${u.logo}" alt="" style="width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:26px;">${u.icon}</span>`
+      ? `<img src="${u.logo}" alt="" style="width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:26px;">${u.icon}</span>`
       : u.icon;
 
     return `<div class="rv4-uni-card ${u.isLocal ? 'uni-card-local' : ''} match-${lvl} reveal" style="animation-delay:${idx*0.06}s" onclick="window.open('${href}','_blank')" title="Visitar ${u.name}">
@@ -3393,6 +3509,7 @@ function renderUnisGrid(unis, careerFilterName){
             <div class="uni-name">${u.name} ${localBadge}</div>
             <div class="uni-city">📍 ${u.city}</div>
           </div>
+          ${favBtnHtml('universidad', u.name)}
           <div class="rv4-uni-pct match-pct-${lvl}">${u.matchScore}%</div>
         </div>
         <div class="rv4-uni-meta" style="padding:0 20px">
@@ -3831,6 +3948,7 @@ function renderExpResults(unis, ai){
             <div class="exp-uni-tipo" style="color:${tipoColor}">${tipo}</div>
           </div>
           <div class="exp-uni-score-wrap">
+            ${favBtnHtml('universidad', u.name)}
             <div class="exp-uni-score-ring ${ringCls}">
               <span class="exp-uni-score-val">${matchPct}%</span>
             </div>

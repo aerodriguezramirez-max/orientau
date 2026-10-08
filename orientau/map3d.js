@@ -106,26 +106,34 @@ function colocarMarcadores(group) {
     if (!coords) return;
     const [x, y, z] = geoToMesh(coords[0], coords[1]);
 
-    let marker;
-    if (u.logo) {
-      const mat = new THREE.SpriteMaterial({ depthTest: false, transparent: true });
-      marker = new THREE.Sprite(mat);
-      marker.scale.set(0.035, 0.035, 1);
-      textureLoader.load(
-        u.logo,
-        (tex) => { mat.map = tex; mat.needsUpdate = true; },
-        undefined,
-        () => { /* si el logo falla, se queda como punto chico por el material base */ }
-      );
-    } else {
-      const geo = new THREE.SphereGeometry(0.005, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x4f8ef7 });
-      marker = new THREE.Mesh(geo, mat);
-    }
+    // Arranca siempre como puntito celeste; si el logo carga bien, se reemplaza por el logo.
+    // Así, si el logo está bloqueado (ej. Brave/adblock) o falla, queda el respaldo visible.
+    const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0x4f8ef7 });
+    const marker = new THREE.Mesh(dotGeo, dotMat);
     marker.position.set(x, y, z);
     marker.userData.uni = u;
     group.add(marker);
     markerMeshes.push(marker);
+
+    if (u.logo) {
+      textureLoader.load(
+        u.logo,
+        (tex) => {
+          const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+          const sprite = new THREE.Sprite(mat);
+          sprite.scale.set(0.035, 0.035, 1);
+          sprite.position.copy(marker.position);
+          sprite.userData.uni = u;
+          group.remove(marker);
+          const idx = markerMeshes.indexOf(marker);
+          if (idx !== -1) markerMeshes[idx] = sprite;
+          group.add(sprite);
+        },
+        undefined,
+        () => { /* logo bloqueado o caído: se queda el puntito celeste, ya está en escena */ }
+      );
+    }
   });
 }
 
